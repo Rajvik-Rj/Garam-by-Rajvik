@@ -1,4 +1,4 @@
-name: Build GARAM CLAP (Windows)
+name: Build GARAM CLAP Windows
 
 on:
   push:
@@ -7,43 +7,31 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Clone CLAP SDK
-      shell: cmd
-      run: git clone --depth 1 https://github.com/free-audio/clap.git clap-sdk
+      - name: Clone CLAP SDK
+        run: git clone --depth 1 https://github.com/free-audio/clap.git clap-sdk
 
-    - name: Write CMakeLists
-      shell: powershell
-      run: |
-        $cmake = @"
-cmake_minimum_required(VERSION 3.15)
-project(GARAM VERSION 1.0.0)
-set(CMAKE_CXX_STANDARD 17)
-add_library(GARAM MODULE garam.cpp)
-target_include_directories(GARAM PRIVATE clap-sdk/include)
-set_target_properties(GARAM PROPERTIES PREFIX "" SUFFIX ".clap")
-"@
-        Set-Content -Path CMakeLists.txt -Value $cmake
+      - name: Write CMakeLists
+        run: |
+          echo cmake_minimum_required(VERSION 3.15) > CMakeLists.txt
+          echo project(GARAM) >> CMakeLists.txt
+          echo set(CMAKE_CXX_STANDARD 17) >> CMakeLists.txt
+          echo add_library(GARAM MODULE garam.cpp) >> CMakeLists.txt
+          echo target_include_directories(GARAM PRIVATE clap-sdk/include) >> CMakeLists.txt
+          echo set_target_properties(GARAM PROPERTIES PREFIX "" SUFFIX ".clap") >> CMakeLists.txt
+        shell: cmd
 
-    - name: Fix include in garam.cpp
-      shell: powershell
-      run: |
-        $content = Get-Content garam.cpp -Raw
-        $content = $content -replace '#include "clap/clap.h"', "#include `"clap/clap.h`"`n#include <cstdio>"
-        Set-Content garam.cpp $content
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-    - name: Configure
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release
 
-    - name: Build
-      run: cmake --build build --config Release
-
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: GARAM-Windows-CLAP
-        path: build/Release/GARAM.clap
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: GARAM-Windows-CLAP
+          path: build/Release/GARAM.clap
