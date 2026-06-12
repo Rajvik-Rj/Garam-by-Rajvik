@@ -11,18 +11,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clone CLAP SDK
-        run: git clone --depth 1 https://github.com/free-audio/clap.git clap-sdk
+      - name: Download CLAP header
+        run: |
+          New-Item -ItemType Directory -Force -Path clap-sdk/include/clap
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/clap.h" -OutFile "clap-sdk/include/clap/clap.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/version.h" -OutFile "clap-sdk/include/clap/version.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/plugin.h" -OutFile "clap-sdk/include/clap/plugin.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/host.h" -OutFile "clap-sdk/include/clap/host.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/process.h" -OutFile "clap-sdk/include/clap/process.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/audio-buffer.h" -OutFile "clap-sdk/include/clap/audio-buffer.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/events.h" -OutFile "clap-sdk/include/clap/events.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/ext/params.h" -OutFile "clap-sdk/include/clap/ext/params.h"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/free-audio/clap/main/include/clap/ext/audio-ports.h" -OutFile "clap-sdk/include/clap/ext/audio-ports.h"
+          New-Item -ItemType Directory -Force -Path clap-sdk/include/clap/ext
+        shell: powershell
 
       - name: Write CMakeLists
+        shell: powershell
         run: |
-          echo cmake_minimum_required(VERSION 3.15) > CMakeLists.txt
-          echo project(GARAM) >> CMakeLists.txt
-          echo set(CMAKE_CXX_STANDARD 17) >> CMakeLists.txt
-          echo add_library(GARAM MODULE garam.cpp) >> CMakeLists.txt
-          echo target_include_directories(GARAM PRIVATE clap-sdk/include) >> CMakeLists.txt
-          echo set_target_properties(GARAM PROPERTIES PREFIX "" SUFFIX ".clap") >> CMakeLists.txt
-        shell: cmd
+          $content = "cmake_minimum_required(VERSION 3.15)`nproject(GARAM)`nset(CMAKE_CXX_STANDARD 17)`nadd_library(GARAM MODULE garam.cpp)`ntarget_include_directories(GARAM PRIVATE clap-sdk/include)`nset_target_properties(GARAM PROPERTIES PREFIX `"`" SUFFIX `".clap`")"
+          Set-Content CMakeLists.txt $content
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
