@@ -2,47 +2,28 @@ cmake_minimum_required(VERSION 3.15)
 project(GARAM VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
+set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-# ── Download CLAP headers if not present ──────────────────────────
-include(FetchContent)
-FetchContent_Declare(
-    clap
-    GIT_REPOSITORY https://github.com/free-audio/clap.git
-    GIT_TAG        main
+add_subdirectory(JUCE)
+
+juce_add_plugin(GARAM
+    PLUGIN_MANUFACTURER_CODE Rajv
+    PLUGIN_CODE Gram
+    FORMATS VST3
+    PRODUCT_NAME "GARAM"
+    COMPANY_NAME "Rajvik"
+    IS_SYNTH FALSE
+    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_OUTPUT FALSE
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    COPY_PLUGIN_AFTER_BUILD FALSE
 )
-FetchContent_MakeAvailable(clap)
 
-# ── Build shared library ──────────────────────────────────────────
-add_library(GARAM MODULE garam.cpp)
-
-target_include_directories(GARAM PRIVATE
-    ${clap_SOURCE_DIR}/include
+juce_generate_juce_header(GARAM)
+target_sources(GARAM PRIVATE garam_juce.cpp)
+target_compile_definitions(GARAM PUBLIC JUCE_VST3_CAN_REPLACE_VST2=0)
+target_link_libraries(GARAM PRIVATE
+    juce::juce_audio_utils
+    juce::juce_dsp
 )
-
-# Remove "lib" prefix
-set_target_properties(GARAM PROPERTIES PREFIX "")
-
-# Platform-specific output extension
-if(WIN32)
-    set_target_properties(GARAM PROPERTIES SUFFIX ".clap")
-elseif(APPLE)
-    set_target_properties(GARAM PROPERTIES SUFFIX ".clap")
-    set_target_properties(GARAM PROPERTIES
-        BUNDLE TRUE
-        BUNDLE_EXTENSION "clap"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.rajvik.garam"
-    )
-else()
-    set_target_properties(GARAM PROPERTIES SUFFIX ".clap")
-endif()
-
-# ── Install target ────────────────────────────────────────────────
-if(WIN32)
-    install(TARGETS GARAM DESTINATION "C:/Program Files/Common Files/CLAP")
-elseif(APPLE)
-    install(TARGETS GARAM DESTINATION "$ENV{HOME}/Library/Audio/Plug-Ins/CLAP")
-else()
-    install(TARGETS GARAM DESTINATION "$ENV{HOME}/.clap")
-endif()
-
-message(STATUS "GARAM plugin configured. Run: cmake --build . && cmake --install .")
